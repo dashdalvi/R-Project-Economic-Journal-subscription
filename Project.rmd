@@ -1,0 +1,420 @@
+---
+title: 'Data Analysis: & Decision Making - Presentation Report'
+author: "Akshat Shreemali, Darshan Dalvi, Prashant Kasalkar, Vaibhav Bavishi"
+---
+
+<b> Objective </b>
+
+Predicting the number of Library Subscriptions for journals
+
+```{r}
+# required libraries
+library(AER)
+library(ggplot2)
+library(GGally)
+library(faraway)
+library(scatterplot3d)
+library(gridExtra)
+```
+
+<b> INTRODUCTION </b>
+
+ Data is on Subscriptions to economic journals at US libraries for the year 2000.
+ Data set is in R package 'AER' under the name 'Journals'.
+ Data contains total 10 variables with 180 observations. The variables are:
+ 1. title <- Character variable containing the Journal titles
+ 2. publisher <- A factor variable containing the publisher names
+ 3. society <- A factor indicating whether the journal belongs to a scholar society or not
+ 4. price <- Numeric value containg the Library Subscription price of the Journals
+ 5. pages <- Numeric value containg the number of pages in the Journal
+ 6. charpp <- Numeric value containg the number of characters per page
+ 7. citations <- total number of citations
+ 8. foundingyear <- the year when the Journal was founded
+ 9. subs <- the number of library subscriptions
+ 10. field <- A factor containing the field description
+ 
+
+<b> Structure of the data </b>
+
+```{r}
+data("Journals") # loading Journals data into R
+str(Journals)
+
+```
+
+< b> Summary of the data </b>
+
+```{r}
+summary (Journals)
+```
+
+Based on summary of the data, following activities can be done
+
+1. No data cleaning is required since there are no missing values
+
+```{r}
+
+
+```
+
+
+ <b> Graphical Representation of Distribution 'Subs' Variable </b>
+
+```{r}
+plot1 = qplot(subs, data = Journals, fill = "red", xlab = "Price")
+plot2 = qplot(subs, data = Journals, geom = "density", fill = "red")
+plot3 = qplot(sample = subs, data = Journals) 
+grid.arrange(plot1, plot2, plot3, ncol = 3)
+
+```
+
+Result:
+
+As we can see, subs variable is rightly skewed with median 122 and mean of 198.7
+
+
+<b> Overlay Plot </b> 
+
+```{r}
+ggplot(Journals, aes(x = subs, y =..density..)) + geom_histogram( fill = "cornsilk", colour =" grey60", size =.2) + geom_density() 
+
+```
+
+<b> BoxPlot </b>
+
+```{r}
+boxplot(Journals$subs, ylab = "Subs", main = "Box Plot")
+```
+ As we can see, since it is rightly skewed, we see outliers present in the data.
+ The evaluation score lies between 20 to 1200 with outliers stretching the values till 2000
+ 
+ <b> Boxplot between subs and society </b>
+ 
+ 
+```{r}
+ggplot(aes(society, subs), data = Journals) + geom_boxplot(aes(fill = society))
+```
+Analysis:
+We can clearly see that if the Journals is  published by the scholarly society then the number of subs increases
+
+<b> Scatterplot of Price vs subs </b>
+
+```{r}
+#plot(Journals$price,Journals$subs)
+
+ (qplot(price, subs, data = Journals,alpha=I(1/2),shape=I(19)) + 
+  geom_abline(intercept = 0, 
+              slope = 1, 
+              color="hot pink") + 
+  geom_smooth(method = "lm", se=FALSE))
+```
+
+We can see it clearly that the relationship between price and subs is non linear
+
+
+<b> Identifying corelations between variables (only numeric variables)
+
+```{r}
+journal_numeric<- Journals[,c("price","subs","charpp","pages")]
+
+cor(journal_numeric)
+```
+
+Analysis:
+1. Subs has a  positive correlation with pages
+2. subs has negative correaltion with price
+3. The relation between charpp and subs is very low (0.084)
+
+<b> Performing Step wise Regression on our model </b>
+Using step wise we can identify those predictors which are not required
+
+```{r}
+g<-lm(subs~.-field-title-publisher,data=Journals) # removing character variables
+g1<-step(g)
+```
+
+
+<b> Creating Linear Regression Model </b>
+We will create a linear model with price as the output variable excluding variables title,field and publisher
+
+```{r}
+g<-lm(subs~.-field-title-publisher,data=Journals)
+summary(g)
+
+```
+
+Analysis:
+1. p-value and f-value do a good job on deciding the goodness of a linear model.
+2. If the p-value is less than or equal to the alpha (i.e p < .05), the result is statistically significant. If the p-value is greater than alpha (p > .05), the result is statistically insignificant.
+3. The f-Ratio 43.87 is large and p-value 2.2e-16 is less than (0.05). The result is significant.
+
+
+<b> Checking NULL HYPOTHESIS </b>
+
+As we can see Since the F-Statistic is 36.59 , we can reject the NULL Hypothesis and can accept the Alternate Hypothesis
+
+Theirfore we can proceed with our model and can normalize and improve it
+
+
+<b> Fit Plot and Residual Plot </b>
+Fit plot for the variable 'subs'
+
+```{r}
+qplot(fitted.values(g), subs, data = Journals) + geom_abline(intercept = 0, slope = 1, color = "green")
+
+```
+
+Analysis:
+1. We don't observe any pattern and the distribution is widely spread with some outliers
+
+<b> Residual plot for the variable 'price' </b>
+
+```{r}
+ggplot(g, aes(.fitted, .resid)) + geom_point() + geom_hline(yintercept = 0, color = "red", linetype = "dashed") + ggtitle("Residual Plot")
+```
+
+Analysis:
+
+The points in a residual plot are randomly dispersed around the horizontal axis, a linear regression model is appropriate for the data.
+
+</b> Exploring Model Structure </b>
+
+```{r}
+cor(g$resid, Journals$subs)
+```
+
+The correlation is high with 0.64 
+
+```{r}
+plot1 = qplot(pages, g$resid, data = Journals) + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+plot2 = qplot(charpp, g$resid, data = Journals) + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+plot3 = qplot(citations, g$resid, data = Journals) + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+plot4 = qplot(foundingyear, g$resid, data = Journals) + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed")
+grid.arrange(plot1,plot2,plot3,plot4,nrow=2,ncol=2)
+
+```
+Analysis:
+
+We see pronounced patters indicating that we do not need to include square of the predictors or other transforms of the predictors.
+
+
+</b> Normality of the Residual </b>
+
+
+```{r}
+mod = fortify(g)
+plot1 = qplot(.stdresid, data = mod, geom = "histogram")
+plot2 = qplot(.stdresid, data = mod, geom = "density")
+plot3 = qplot(sample = .stdresid, data = mod, geom = "qq") +geom_abline()
+grid.arrange(plot1, plot2, plot3, nrow = 1)
+```
+
+Analysis : 
+The residual do not look as though they come from a normal distribution.
+The QQ-Plot looks slightly linear with outliers
+Density plot is not appearing like a normal distribution
+
+
+<b> Creating another model to improve efficiency of the model </b>
+
+```{r}
+journals <- Journals[, c("subs", "price")]
+journals$citeprice <- Journals$price/Journals$citations
+journals$age <- 2000 - Journals$foundingyear
+journals$chars <- Journals$charpp*Journals$pages/10^6
+summary(journals)
+
+```
+
+<b> Creating another model with log for our data on Numeric predictors </b>
+
+```{r}
+g3 <- lm(subs ~ citeprice + age + chars, data = log(journals))
+summary(g3)
+
+```
+
+Performing Shapiro test for our model
+```{r}
+shapiro.test(residuals(g3))
+
+```
+
+
+
+
+```{r}
+mod2 <- fortify(g3)
+p2 <- qplot(.fitted, .resid, data = mod2) + geom_hline(yintercept = 0, linetype = "dashed") + 
+  labs(title = "Residuals vs Fitted", x = "Fitted", y = "Residuals") + geom_smooth(color = "red",  se = F)
+p2
+
+```
+
+
+```{r}
+qqnorm(fitted.values(g3))
+```
+
+<b> Creating another model with quadratic perdictors </b>
+
+```{r}
+g4 <- lm(subs ~ citeprice + I(citeprice^2) + I(citeprice^3) +
+           age + I(age * citeprice) + chars, data = log(journals))
+summary(g4)
+
+```
+
+
+```{r}
+shapiro.test(residuals(g4))# 
+```
+
+```{r}
+mod3 <- fortify(g4)
+p3 <- qplot(.fitted, .resid, data = mod2) + geom_hline(yintercept = 0, linetype = "dashed") + 
+  labs(title = "Residuals vs Fitted", x = "Fitted", y = "Residuals") + geom_smooth(color = "red",  se = F)
+p3
+
+```
+
+```{r}
+g5 <- step(g4)
+```
+
+<b> Comparing both the models </b>
+
+```{r}
+anova(g5,g4)
+```
+
+Analysis:
+We take the first model Since the F-ratio is small
+
+
+</b> Performing Cross Validation on our two models </b>
+
+```{r}
+library(DAAG)
+seed <- round(runif(1, min=0, max=100))
+oldpar <- par(mfrow=c(2,3))
+mse.g2 <- CVlm(data = journals, 
+               form.lm=g3, 
+               m=4, 
+               seed=seed, 
+               printit=F,
+               main = "g3") #g3 is our model lm(subs^lam ~ citeprice + age + I(age * citeprice) +chars, data = log(journals))
+mse.g3 <- CVlm(data = journals, 
+               form.lm=g4, 
+               m=4, 
+               seed=seed, 
+               printit=F,
+               main = "g4") #g4 is this model lm(subs ~ citeprice + I(citeprice^2) + I(citeprice^3) +age + I(age * #citeprice) + chars, data = log(journals))
+
+data.frame(
+           mse.g2=attr(mse.g2, "ms"),
+           mse.g3=attr(mse.g3, "ms"))
+```
+
+
+
+
+
+
+We can clearly see that mse for our second model is lower than the first one.
+Hence we select our first model
+
+
+<b> BOX Cox Transform </b>
+
+```{r}
+ library(car)
+  (lambda <- powerTransform(g4))
+  lam <- lambda$lambda
+  glam <- lm(subs^lam ~ citeprice + age + I(age * citeprice) + chars, data = log(journals))
+  modlam <- fortify(glam)
+  p1 <- qplot(sample = scale(.resid), data = mod3) + geom_abline(intercept = 0, 
+                                                                  slope = 1, color = "red") + labs(title = "Normal QQ-Plot", y = "Residuals Sqrt-transformed")
+  p2 <- qplot(sample = scale(.resid), data = modlam) + geom_abline(intercept = 0, 
+                                                                   slope = 1, color = "red") + labs(title = "Normal QQ-Plot", y = "Residuals Box-Cox-Transform")
+  grid.arrange(p1, p2, nrow = 1)
+
+```
+```{r}
+influencePlot(g4)
+```
+# We can Clearly see outliers using Cooks distance
+
+
+
+```{r}
+journ <- row.names(journals)
+cook <- cooks.distance(g4)
+halfnorm(cook, 3, labs = journ, ylab = "Cook's distance")
+```
+
+
+<b> Creating of Test and Training data </b>
+
+```{r}
+train=sample(1:dim(journals)[1],120)
+test=-train
+
+traindata=journals[train,]
+testdata=journals[-train,]
+testoutput=journals$subs[-train]
+head(testoutput)
+testoutput<-ifelse(testoutput<300, 'low',"high")
+```
+
+
+
+```{r}
+newg<-lm(subs^lam ~ citeprice + age + I(age * citeprice) + chars, data = log(traindata))
+summary(newg)
+```
+
+```{r}
+confint(newg)
+```
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+<b> Improvement of our Model </b>
+
+Initially we started our model with R2 of <b> 0.544 </b>
+by improving our models and getting rid other variables and using quadratic function of the variables
+The new R2 is <b> 0.60 </b>
+
+
+
+```{r}
+testing<-ifelse(testdata$subs<300,'low','high')
+testdata=data.frame(testdata,testing)
+test<-ifelse(testdata$subs<300,'low','high')
+testdata=data.frame(testdata,testing)
+
+q<-predict(newg,testdata,interval = 'predict')
+q<-ifelse(q<300,'low',"high")
+mean((q==testoutput))
+```
+
+<b> ANALYSIS of our result</b>
+
+After creating a correct model based on the traninig data, our model has predicted almost 80.5% of the data from the test data
+
+
