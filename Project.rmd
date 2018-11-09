@@ -1,6 +1,5 @@
 ---
 title: 'Data Analysis: & Decision Making - Presentation Report'
-author: "Akshat Shreemali, Darshan Dalvi, Prashant Kasalkar, Vaibhav Bavishi"
 ---
 
 <b> Objective </b>
